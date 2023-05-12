@@ -13,6 +13,7 @@ import scipy.optimize as opt
 import cluster_tools as ct
 import sklearn.cluster as cluster
 import sklearn.metrics as skmet
+import scipy.optimize as opt
 
 
 def clean_df(df, time, class_name):
@@ -94,6 +95,25 @@ plt.scatter(xc, yc, c="k", marker="d", s=80)
 plt.show()
 
 
-#########################################code to be deleted
-plt.scatter(df17_cleaned['Affordability of a nutrient adequate diet: ratio of cost to the food poverty line [CoNA_pov]'],
-            df17_cleaned['Affordability of a healthy diet: ratio of cost to the food poverty line [CoHD_pov]'])
+#############fitting
+x = df17_cleaned['Affordability of a nutrient adequate diet: ratio of cost to the food poverty line [CoNA_pov]']
+y = df17_cleaned['Affordability of a healthy diet: ratio of cost to the food poverty line [CoHD_pov]']
+popt, pcorr = opt.curve_fit(line, x, y)
+
+# extract variances and calculate sigmas
+sigmas = np.sqrt(np.diag(pcorr))
+
+# call function to calculate upper and lower limits with extrapolation
+# create extended year range
+
+z= line(x, *popt)
+
+
+plt.figure()
+plt.title("Linear")
+plt.scatter(x, y, label="data")
+plt.plot(x, z, label="fit")
+# plot error ranges with transparency
+
+plt.legend(loc="upper left")
+plt.show()
