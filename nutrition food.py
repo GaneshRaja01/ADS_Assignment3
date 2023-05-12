@@ -10,9 +10,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
-from sklearn.cluster import AffinityPropagation
-from sklearn.preprocessing import StandardScaler 
-from sklearn.preprocessing import normalize 
+import cluster_tools as ct
+import sklearn.cluster as cluster
+import sklearn.metrics as skmet
 
 
 def clean_df(df, time, class_name):
@@ -25,6 +25,12 @@ def remove_cols(df, cols):
     df.drop(cols, axis=1, inplace = True)
     return df
 
+
+def line(x, m, c):
+    y = m*x+c
+    return y
+
+
 # main code
 df = pd.read_excel('Food_Prices_for_Nutrition.xlsx')
 
@@ -35,6 +41,59 @@ df2017 = clean_df(df, Time, class_name)
 
 cols =['Classification Name', 'Classification Code', 'Country Code', 'Time', 'Time Code']
 df17_cleaned = remove_cols(df2017, cols)
-x = df17_cleaned.replace('..' , 0.0)
-#df17_cleaned.replace('..', 0)
-#df17_cleaned.fillna(0)
+df17_cleaned.replace('..' , 0.0, inplace=True)
+
+
+
+######################
+df_clus = df17_cleaned[["Cost of fruits [CoHD_f]", "Cost of vegetables [CoHD_v]"]].copy()
+
+# normalise dataframe and inspect result
+# normalisation is done only on the extract columns. .copy() prevents
+# changes in df_clus to affect df17_cleaned. This make the plots with the 
+# original measurements
+df_clus, df_min, df_max = ct.scaler(df_clus)
+print(df_clus.describe())
+print()
+
+print("n   score")
+# loop over trial numbers of clusters calculating the silhouette
+for ic in range(2, 7):
+    # set up kmeans and fit
+    kmeans = cluster.KMeans(n_clusters=ic)
+    kmeans.fit(df_clus)     
+
+    # extract labels and calculate silhoutte score
+    labels = kmeans.labels_
+    print (ic, skmet.silhouette_score(df_clus, labels))
+
+
+nc = 6 # number of cluster centres
+
+kmeans = cluster.KMeans(n_clusters=nc)
+kmeans.fit(df_clus)     
+
+# extract labels and cluster centres
+labels = kmeans.labels_
+cen = kmeans.cluster_centers_
+
+plt.figure(figsize=(6.0, 6.0))
+# scatter plot with colours selected using the cluster numbers
+plt.scatter(df_clus["Cost of fruits [CoHD_f]"], df_clus["Cost of vegetables [CoHD_v]"], c=labels, cmap="tab10")
+# colour map Accent selected to increase contrast between colours
+
+# show cluster centres
+xc = cen[:,0]
+yc = cen[:,1]
+plt.scatter(xc, yc, c="k", marker="d", s=80)
+# c = colour, s = size
+
+# plt.xlabel("total length")
+# plt.ylabel("height")
+# plt.title("4 clusters")
+plt.show()
+
+
+#########################################code to be deleted
+plt.scatter(df17_cleaned['Affordability of a nutrient adequate diet: ratio of cost to the food poverty line [CoNA_pov]'],
+            df17_cleaned['Affordability of a healthy diet: ratio of cost to the food poverty line [CoHD_pov]'])
